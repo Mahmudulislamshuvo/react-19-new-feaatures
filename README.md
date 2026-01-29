@@ -136,32 +136,59 @@ export default function MyForm() {
 
 ---
 
+
 ## 4. Form Actions (অটোমেটিক ম্যানেজার)
 
 ### 🤔 সমস্যা কী ছিল?
 
-বাটনে ক্লিক করার পর "Loading..." দেখানোর জন্য আমাদের আলাদা `useState` বানাতে হতো (`isLoading` true/false)।
+আগে ফর্ম সাবমিট করার পর এরর মেসেজ দেখানো বা "Loading..." দেখানোর জন্য আমাদের `useState` দিয়ে অনেকগুলো স্টেট ম্যানেজ করতে হতো (`isLoading`, `error`, `success`)।
 
 ### 💡 React 19 কী করল?
 
-**`useFormStatus`** হুক ব্যবহার করলে React নিজেই বলে দেয় ফর্ম এখন লোড হচ্ছে কিনা।
+React দুটি নতুন হুক দিয়েছে যা ফর্মের সব অবস্থা নিজেই ম্যানেজ করে:
+
+1. **`useActionState`** (আগে নাম ছিল `useFormState`): এটি ফর্মের রেজাল্ট বা এরর মেসেজ আপডেট করে।
+2. **`useFormStatus`**: এটি ফর্ম সাবমিট হওয়ার সময় লোডিং অবস্থা জানায়।
 
 **কোড উদাহরণ:**
 
 ```jsx
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+
+// ১. সার্ভার অ্যাকশন (বা ফর্ম অ্যাকশন)
+const submitAction = async (previousState, formData) => {
+  const name = formData.get("name");
+  if (!name) return { error: "Name is required!" };
+  return { message: "Success! User created." };
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus(); // অটোমেটিক লোডিং স্ট্যাটাস
+  return <button disabled={pending}>{pending ? "Saving..." : "Save"}</button>;
+}
+
+export default function MyForm() {
+  // ২. useActionState দিয়ে ফর্ম কানেক্ট করা হলো
+  const [state, formAction] = useActionState(submitAction, null);
 
   return (
-    <button disabled={pending}>
-      {pending ? "Saving..." : "Save Now"}
-    </button>
+    <form action={formAction}>
+      <input name="name" placeholder="Enter Name" />
+      <SubmitButton />
+      
+      {/* ৩. সার্ভার থেকে আসা মেসেজ দেখানো */}
+      {state?.error && <p style={{color: 'red'}}>{state.error}</p>}
+      {state?.message && <p style={{color: 'green'}}>{state.message}</p>}
+    </form>
   );
 }
 
 ```
+
+---
+
+এটি আগের **Section 4** এর বদলে বসিয়ে দিলে `useActionState` (বা `useFormState`) এবং `useFormStatus`—দুটোই কাভার হয়ে যাবে।
 
 ---
 
